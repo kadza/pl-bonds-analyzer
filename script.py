@@ -6,14 +6,15 @@ import requests
 import json
 
 
-LOCAL_PATH = './data/202207_CAT.xls'
+LOCAL_PATH = './data/dane.xls'
+EXCLUDED_ISSUERS_FILE_PATH = './data/excluded_issuers.txt'
 
 TRADING_VALUE_THRESHOLD = 50.0
 NOMINAL_VALUE_THRESHOLD = 1000
 MARGIN_THRESHOLD_RELATIVE_TO_AVERAGE = 0
 IS_FLOATING = True
-MIN_MATURITY_DATE_YEARS = 1
-MAX_MATURITY_DATE_YEARS = 3
+MIN_MATURITY_YEARS = 1
+MAX_MATURITY_YEARS = 3
 
 OBLIGACJE_PL_URL = 'https://obligacje.pl/ajax/kalkulatorDane.php'
 
@@ -51,12 +52,9 @@ class ObligacjePlResponse:
         self.kal_kurs_ostatniej_transakcji = kal_kurs_ostatniej_transakcji
 
 def fetch_json(url, instrument_id):
-    print('Fetching instrument_id=' + instrument_id)
-
     cache_file = './cache/{instrument_id}.json'.format(instrument_id=instrument_id)
 
     if os.path.isfile(cache_file):
-        print('Found cached response for instrument_id=' + instrument_id)
         with open(cache_file, 'r') as f:
             return json.load(f)
 
@@ -102,19 +100,26 @@ def fetch_obligacje_pl_response_and_fill_bond_map(bonds):
 def calculate_average_margin(bonds):
     return sum(bond.margin for bond in bonds.values()) / len(bonds)
 
-def filter_bonds(bonds, trading_value_threshold, is_floating, max_maturity_date_years, min_maturity_date_years, average_margin):
-    filtered_bonds = {}
-    for bond in bonds.values():
+def read_excluded_issuers_from_text_file_delimeted_by_newline(file_path):
+    if not os.path.isfile(file_path):
+        return []
+
+    with open(file_path, 'r') as f:
+        return [line.strip() for line in f.readlines()]
+
+def filter_bonds(bonds, trading_value_threshold, is_floating, max_maturity_date_years, min_maturity_date_years, average_margin, excluded_issuers):
+    filtered_bonds = []
+    for bond in bonds:
+        if bond.issuer_id in excluded_issuers:
+            continue
+
         if bond.trading_value >= trading_value_threshold and bond.nominal_value <= NOMINAL_VALUE_THRESHOLD and bond.margin <= (average_margin + MARGIN_THRESHOLD_RELATIVE_TO_AVERAGE) and (not is_floating or bond.type_of_interest == 'zmienne/floating') and bond.maturity_date.year <= datetime.datetime.now().year + max_maturity_date_years and bond.maturity_date.year >= datetime.datetime.now().year + min_maturity_date_years:
-            filtered_bonds[bond.id] = bond
+            filtered_bonds.append(bond)
+
     return filtered_bonds
 
-def print_bonds(bonds):
-    print('ID ISSUER_ID MATURITY_DATE MARGIN LAST_TRADING_VALUE')
-    for bond in bonds.values():
-        print(bond.id, bond.issuer_id, bond.maturity_date, bond.nominal_value, bond.margin, bond.last_trading_value)
-
-    print(bonds.values().__len__())
+def sort_bonds_by_margin(bonds):
+    return sorted(bonds, key=lambda bond: bond.margin, reverse=True)
 
 def parse_xls(file_path, instruments_sheet_name, tradings_sheet_name):
     try:
@@ -129,8 +134,19 @@ def parse_xls(file_path, instruments_sheet_name, tradings_sheet_name):
         print(e)
         return None
 
+def print_bonds(bonds):
+    print('ID ISSUER_ID MATURITY_DATE MARGIN LAST_TRADING_VALUE')
+    for bond in bonds:
+        print(bond.id, bond.issuer_id, bond.maturity_date, bond.margin, bond.last_trading_value)
+
+    print('Bonds count: ' + str(bonds.__len__()))
+
+excluded_issuers = read_excluded_issuers_from_text_file_delimeted_by_newline(EXCLUDED_ISSUERS_FILE_PATH)
 bonds = parse_xls(LOCAL_PATH, INSTRUMENTS_SHEET_NAME, TRADINGS_SHEET_NAME)
 average_margin = calculate_average_margin(bonds)
-bonds = filter_bonds(bonds, TRADING_VALUE_THRESHOLD, IS_FLOATING, MAX_MATURITY_DATE_YEARS, MIN_MATURITY_DATE_YEARS, average_margin)
+bonds = bonds.values()
+bonds = filter_bonds(bonds, TRADING_VALUE_THRESHOLD, IS_FLOATING, MAX_MATURITY_YEARS, MIN_MATURITY_YEARS, average_margin, excluded_issuers)
+bonds = sort_bonds_by_margin(bonds)
 print_bonds(bonds)
-print(average_margin)
+#average_margin to string to avoid floating point errors
+print('Average margin: ' + str(average_margin))

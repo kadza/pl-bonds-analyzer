@@ -2,17 +2,21 @@
 
 ## How to use
 1. Download the latest version of this script
-2. Download monthly statistics and copy to ./data/dane.xls
+2. Download monthly statistics e.g (https://gpwcatalyst.pl/pub/CATALYST/statystyki/statystyki_miesieczne/202207_CAT.xls) and copy to ./data/dane.xls
 3. Run the script
 ```python3 script.py```
+NOTE If needed adjust the parameters in the script
 
 ## Paramters:
-- only active bonds turnover threshold
-- risk threshold relative to average margin
-- time to maturity
-- best time to buy (Todo)
-- issuers exclude list ( SP, Miasto, Gmina ) (Todo)
-- only active bonds transaction threshold (Todo)
+- TRADING_VALUE_THRESHOLD - only active bonds trading value threshold, default 50k PLN
+- NOMINAL_VALUE_THRESHOLD - default 1k PLN
+- MARGIN_THRESHOLD_RELATIVE_TO_AVERAGE - risk threshold relative to average margin, default 0
+- IS_FLOATING - include only floating bonds and not e.g. fixed bonds, default True
+- MIN_MATURITY_YEARS - minimum maturity in years, default 1
+- MAX_MATURITY_YEARS - maximum maturity in years, default 3
+
+## Issuers exclude list
+A list of issuers to exclude from the analysis, e.g. issuers with low liquidity, default couple of real estate issuers
 
 ## Reverse engineering
 Get month state
