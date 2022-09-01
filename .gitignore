@@ -129,4 +129,5 @@ dmypy.json
 .pyre/
 
 data/dane.xls
-cache
+cache/*
+!cache/placeholder

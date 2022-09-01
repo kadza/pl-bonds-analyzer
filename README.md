@@ -4,10 +4,12 @@
 1. Download the latest version of this script
 2. Download monthly statistics e.g (https://gpwcatalyst.pl/pub/CATALYST/statystyki/statystyki_miesieczne/202207_CAT.xls) and copy to ./data/dane.xls
 3. Run the script
-```python3 script.py```
-NOTE If needed adjust the parameters in the script
+```python3 script.py```\
+Expected result\
+![alt text](result_sample.png "Sample result")
 
-## Paramters:
+## Parameters
+If needed you can change the parameters of the script.
 - TRADING_VALUE_THRESHOLD - only active bonds trading value threshold, default 50k PLN
 - NOMINAL_VALUE_THRESHOLD - default 1k PLN
 - MARGIN_THRESHOLD_RELATIVE_TO_AVERAGE - risk threshold relative to average margin, default 0
