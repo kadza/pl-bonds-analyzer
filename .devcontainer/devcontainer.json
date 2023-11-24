@@ -1,0 +1,8 @@
+{
+  "name": "kadza_bond_analyzer",
+  "image": "mcr.microsoft.com/vscode/devcontainers/python:3.10",
+  "runArgs": [
+    "--name",
+    "kadza_bond_analyzer"
+  ]
+}
