@@ -3,8 +3,17 @@
 ## How to use
 1. Download the latest version of this script
 2. Download monthly statistics e.g (https://gpwcatalyst.pl/pub/CATALYST/statystyki/statystyki_miesieczne/202207_CAT.xls) and copy to ./data/dane.xls
-3. Run the script
-```python3 script.py```\
+```
+  curl https://gpwcatalyst.pl/pub/CATALYST/statystyki/statystyki_miesieczne/202207_CAT.xls -o ./data/dane.xls
+```
+3. Install script dependencies
+```
+  pip install xlrd requests
+```
+4. Run the script
+```
+  python3 script.py
+```
 Expected result\
 ![alt text](result_sample.png "Sample result")
 
