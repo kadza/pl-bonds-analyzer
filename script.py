@@ -11,7 +11,7 @@ EXCLUDED_ISSUERS_FILE_PATH = './data/excluded_issuers.txt'
 
 TRADING_VALUE_THRESHOLD = 50.0
 NOMINAL_VALUE_THRESHOLD = 1000
-MARGIN_THRESHOLD_RELATIVE_TO_AVERAGE = 0
+MARGIN_THRESHOLD_RELATIVE_TO_AVERAGE = 3
 IS_FLOATING = True
 MIN_MATURITY_YEARS = 1
 MAX_MATURITY_YEARS = 3
@@ -73,13 +73,16 @@ def convert_obligacje_pl_json_to_response(json):
 def read_cells_from_instruments_sheet_and_convert_to_bond_map(instrumentsSheet, start_row_index, end_row_index, instrument_id_col_index, issuer_id_col_index, maturity_date_col_index, type_of_interest_col_index, trading_currency_col_index, nominal_value_col_index):
     bonds = {}
     for row_index in range(start_row_index, end_row_index):
-        instrument_id = instrumentsSheet.cell_value(row_index, instrument_id_col_index)
-        issuer_id = instrumentsSheet.cell_value(row_index, issuer_id_col_index)
-        maturity_date = datetime.datetime.strptime(instrumentsSheet.cell_value(row_index, maturity_date_col_index), '%Y.%m.%d').date()
-        type_of_interest = instrumentsSheet.cell_value(row_index, type_of_interest_col_index)
-        trading_currency = instrumentsSheet.cell_value(row_index, trading_currency_col_index)
-        nominal_value = instrumentsSheet.cell_value(row_index, nominal_value_col_index)
-        bonds[instrument_id] = Bond(instrument_id, issuer_id, maturity_date, type_of_interest, trading_currency, nominal_value)
+        try:
+          instrument_id = instrumentsSheet.cell_value(row_index, instrument_id_col_index)
+          issuer_id = instrumentsSheet.cell_value(row_index, issuer_id_col_index)
+          maturity_date = datetime.datetime.strptime(instrumentsSheet.cell_value(row_index, maturity_date_col_index), '%Y.%m.%d').date()
+          type_of_interest = instrumentsSheet.cell_value(row_index, type_of_interest_col_index)
+          trading_currency = instrumentsSheet.cell_value(row_index, trading_currency_col_index)
+          nominal_value = instrumentsSheet.cell_value(row_index, nominal_value_col_index)
+          bonds[instrument_id] = Bond(instrument_id, issuer_id, maturity_date, type_of_interest, trading_currency, nominal_value)
+        except Exception as e:
+            print(e)
     return bonds
 
 def read_cells_from_trading_sheet_and_fill_bond_map(sheet, start_row_index, end_row_index, instrument_id_col_index, trading_value_col_index, bonds):
@@ -113,7 +116,7 @@ def filter_bonds(bonds, trading_value_threshold, is_floating, max_maturity_date_
         if bond.issuer_id in excluded_issuers:
             continue
 
-        if bond.trading_value >= trading_value_threshold and bond.nominal_value <= NOMINAL_VALUE_THRESHOLD and bond.margin <= (average_margin + MARGIN_THRESHOLD_RELATIVE_TO_AVERAGE) and (not is_floating or bond.type_of_interest == 'zmienne/floating') and bond.maturity_date.year <= datetime.datetime.now().year + max_maturity_date_years and bond.maturity_date.year >= datetime.datetime.now().year + min_maturity_date_years:
+        if bond.trading_value >= trading_value_threshold and bond.nominal_value <= NOMINAL_VALUE_THRESHOLD and bond.margin <= (average_margin + MARGIN_THRESHOLD_RELATIVE_TO_AVERAGE) and ((is_floating and bond.type_of_interest == 'zmienne/floating') or (not is_floating and bond.type_of_interest == 'stałe/fixed')) and bond.maturity_date.year <= datetime.datetime.now().year + max_maturity_date_years and bond.maturity_date.year >= datetime.datetime.now().year + min_maturity_date_years:
             filtered_bonds.append(bond)
 
     return filtered_bonds
