@@ -1,6 +1,10 @@
 {
   "name": "kadza_bond_analyzer",
   "image": "mcr.microsoft.com/vscode/devcontainers/python:3.10",
+  "features": {
+    "ghcr.io/devcontainers/features/nix:1":{}
+  },
+  "postCreateCommand": "pip3 install --user -r requirements.txt",
   "runArgs": [
     "--name",
     "kadza_bond_analyzer"
