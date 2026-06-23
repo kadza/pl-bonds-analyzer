@@ -54,7 +54,7 @@ class ObligacjePlResponse:
 def fetch_json(url, instrument_id):
     cache_file = './cache/{instrument_id}.json'.format(instrument_id=instrument_id)
 
-    if os.path.isfile(cache_file):
+    if os.path.isfile(cache_file) and os.path.getsize(cache_file) > 0:
         with open(cache_file, 'r') as f:
             return json.load(f)
 
@@ -62,10 +62,12 @@ def fetch_json(url, instrument_id):
     if response.status_code != 200:
         raise Exception('There was an error. Response code: ' + str(response.status_code))
 
+    # Parse before writing so a bad response never leaves a corrupt/empty cache file behind.
+    data = response.json()
     with open(cache_file, 'w') as f:
-        json.dump(response.json(), f)
+        json.dump(data, f)
 
-    return json.loads(response.text)
+    return data
 
 def convert_obligacje_pl_json_to_response(json):
     return ObligacjePlResponse(float(json['kal_stopa_nominalna_marza']), json['kal_kurs_ostatniej_transakcji'])
@@ -93,11 +95,19 @@ def read_cells_from_trading_sheet_and_fill_bond_map(sheet, start_row_index, end_
             bonds[instrument_id].trading_value = trading_value
 
 def fetch_obligacje_pl_response_and_fill_bond_map(bonds):
+    unresolved = []
     for bond in bonds.values():
-        json = fetch_json(OBLIGACJE_PL_URL, bond.id)
-        response = convert_obligacje_pl_json_to_response(json)
-        bonds[bond.id].margin = response.kal_stopa_nominalna_marza
-        bonds[bond.id].last_trading_value = response.kal_kurs_ostatniej_transakcji
+        try:
+            json = fetch_json(OBLIGACJE_PL_URL, bond.id)
+            response = convert_obligacje_pl_json_to_response(json)
+            bonds[bond.id].margin = response.kal_stopa_nominalna_marza
+            bonds[bond.id].last_trading_value = response.kal_kurs_ostatniej_transakcji
+        except Exception as e:
+            # No usable data upstream for this instrument; skip it rather than aborting the whole run.
+            print('Skipping {id}: {error}'.format(id=bond.id, error=e))
+            unresolved.append(bond.id)
+    for instrument_id in unresolved:
+        del bonds[instrument_id]
     return bonds
 
 def calculate_average_margin(bonds):
